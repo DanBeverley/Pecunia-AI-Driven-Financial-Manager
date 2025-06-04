@@ -1,0 +1,149 @@
+# 🚀 Pecunia AI Models - Quantization Configuration
+# Advanced quantization settings for production deployment
+
+quantization:
+  # Global settings
+  global:
+    enable_quantization: true
+    default_strategy: "balanced"
+    preserve_accuracy_threshold: 0.02  # Max acceptable accuracy loss
+    compression_target: 0.3  # Target 70% size reduction
+    
+  # Model-specific configurations
+  models:
+    income_classifier:
+      strategy: "aggressive"  # High compression for simple classification
+      techniques:
+        - "feature_reduction"
+        - "tree_pruning" 
+        - "ensemble_compression"
+      parameters:
+        max_features: 50  # Reduce from engineered features
+        max_depth_reduction: 0.3  # 30% depth reduction
+        estimator_reduction: 0.5  # 50% fewer estimators
+        precision_bits: 8
+      expected_compression: 0.25  # 75% size reduction
+      
+    expense_classifier:
+      strategy: "conservative"  # Preserve perfect accuracy
+      techniques:
+        - "tfidf_compression"
+        - "feature_selection"
+        - "vocabulary_pruning"
+      parameters:
+        max_tfidf_features: 150  # Reduce TF-IDF features
+        vocab_pruning_threshold: 0.001
+        precision_bits: 16  # Higher precision for text
+        min_accuracy_retention: 0.98
+      expected_compression: 0.4  # 60% size reduction
+      
+    investment_predictor:
+      strategy: "balanced"  # Balance size and accuracy
+      techniques:
+        - "feature_importance_pruning"
+        - "ensemble_compression"
+        - "temporal_compression"
+      parameters:
+        feature_importance_threshold: 0.01
+        max_lag_features: 3  # Reduce lag features
+        technical_indicators_reduction: 0.3
+        precision_bits: 12
+      expected_compression: 0.35  # 65% size reduction
+      
+    fraud_detector:
+      strategy: "precision_focused"  # Maintain high precision/recall
+      techniques:
+        - "outlier_feature_compression"
+        - "v_feature_selection"
+        - "interaction_pruning"
+      parameters:
+        v_feature_threshold: 0.005
+        interaction_importance_min: 0.02
+        precision_bits: 14  # Higher precision for fraud detection
+        auc_retention_min: 0.98
+      expected_compression: 0.3  # 70% size reduction
+
+  # Compression techniques configuration
+  techniques:
+    feature_reduction:
+      enabled: true
+      methods:
+        - "importance_based"
+        - "correlation_removal" 
+        - "variance_threshold"
+      thresholds:
+        importance_min: 0.001
+        correlation_max: 0.95
+        variance_min: 0.01
+        
+    tree_pruning:
+      enabled: true
+      methods:
+        - "depth_reduction"
+        - "leaf_pruning"
+        - "branch_merging"
+      parameters:
+        min_samples_leaf_multiplier: 2
+        max_depth_reduction_ratio: 0.3
+        
+    ensemble_compression:
+      enabled: true
+      methods:
+        - "estimator_reduction"
+        - "model_distillation"
+        - "voting_optimization"
+      parameters:
+        estimator_keep_ratio: 0.6
+        performance_threshold: 0.95
+        
+    tfidf_compression:
+      enabled: true
+      methods:
+        - "vocabulary_pruning"
+        - "feature_selection"
+        - "sparse_optimization"
+      parameters:
+        max_features_ratio: 0.5
+        min_df_increase: 2
+        max_df_decrease: 0.1
+
+  # Deployment configurations
+  deployment:
+    production:
+      strategy: "balanced"
+      max_model_size_mb: 50
+      max_inference_time_ms: 100
+      min_accuracy_retention: 0.95
+      
+    edge:
+      strategy: "aggressive"
+      max_model_size_mb: 10
+      max_inference_time_ms: 50
+      min_accuracy_retention: 0.90
+      
+    mobile:
+      strategy: "ultra_compressed"
+      max_model_size_mb: 5
+      max_inference_time_ms: 30
+      min_accuracy_retention: 0.85
+      
+    cloud:
+      strategy: "conservative"
+      max_model_size_mb: 200
+      max_inference_time_ms: 200
+      min_accuracy_retention: 0.98
+
+  # Quality assurance
+  validation:
+    cross_validation_folds: 5
+    test_size: 0.2
+    metrics_comparison: true
+    performance_benchmarking: true
+    
+  # Logging and monitoring
+  logging:
+    enabled: true
+    level: "INFO"
+    save_comparison_plots: true
+    detailed_metrics: true
+    compression_report: true 
