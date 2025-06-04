@@ -88,10 +88,12 @@ class FraudDetector:
         df['Amount_log'] = np.log1p(df['Amount'])
         df['Amount_sqrt'] = np.sqrt(df['Amount'])
         
-        # Amount categories
+        # Amount categories - handle NaN values
         df['Amount_category'] = pd.cut(df['Amount'], 
                                      bins=[0, 10, 50, 200, 500, 2000, float('inf')],
-                                     labels=[0, 1, 2, 3, 4, 5]).astype(int)
+                                     labels=[0, 1, 2, 3, 4, 5])
+        # Fill NaN values with 0 before converting to int
+        df['Amount_category'] = df['Amount_category'].fillna(0).astype(int)
         
         # High-risk amount ranges (common fraud patterns)
         df['High_risk_amount'] = ((df['Amount'] < 5) | 
