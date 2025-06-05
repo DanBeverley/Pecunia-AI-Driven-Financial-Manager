@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Pecunia AI - Enterprise Financial Management System
-Main entry point with model training, detection, and Streamlit app launch
+Pecunia AI - Production Deployment Script
+Complete system with model detection, training, and Streamlit app launch
 """
 
 import argparse
@@ -18,6 +18,11 @@ import logging
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+# Ensure logs directory exists
+logs_dir = Path('logs')
+if not logs_dir.exists():
+    logs_dir.mkdir(exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -28,15 +33,6 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
-
-# Import our enterprise utils
-try:
-    from utils import (
-        initialize_all_systems, SecurityPolicy, AuthMethod, UserRole,
-        clean_data, detect_anomalies, BlockchainNetwork
-    )
-except ImportError:
-    logger.warning("Some utils modules not available - continuing with limited functionality")
 
 def check_model_exists(model_path: str) -> bool:
     """Check if a trained model exists"""
@@ -150,11 +146,6 @@ def setup_production_environment():
             dir_path.mkdir(exist_ok=True)
             logger.info(f"📁 Created directory: {dir_name}")
     
-    # Ensure log file exists
-    log_file = Path('logs/pecunia.log')
-    if not log_file.exists():
-        log_file.touch()
-    
     # Set production API keys and settings
     production_settings = {
         'NEWSAPI_KEY': 'your_newsapi_key_here',  # Replace with actual key
@@ -252,19 +243,19 @@ def parse_arguments():
         epilog="""
 Examples:
   # Run complete system (recommended)
-  python main.py
+  python main_production.py
   
   # Run with custom training settings
-  python main.py --sample-size 50000 --epochs 30
+  python main_production.py --sample-size 50000 --epochs 30
   
   # Skip training and just run app
-  python main.py --skip-training
+  python main_production.py --skip-training
   
   # Force retrain all models
-  python main.py --force-retrain
+  python main_production.py --force-retrain
   
   # Production deployment
-  python main.py --production --install-deps
+  python main_production.py --production --install-deps
         """
     )
     
