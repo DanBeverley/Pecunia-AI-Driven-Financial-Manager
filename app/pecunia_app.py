@@ -28,39 +28,151 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # Custom CSS for better styling
+    # Modern Dark Theme CSS
     st.markdown("""
     <style>
+    /* Main app background */
+    .stApp {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        color: #e0e0e0;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: linear-gradient(180deg, #1f1f1f 0%, #2a2a2a 100%);
+    }
+    
+    /* Main header with modern gradient */
     .main-header {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 50%, #000000 100%);
+        padding: 2.5rem;
+        border-radius: 15px;
         margin-bottom: 2rem;
         text-align: center;
-        color: white;
+        color: #ffffff;
+        border: 1px solid #404040;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
     
+    /* Feature cards with glass morphism effect */
     .feature-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border-left: 4px solid #667eea;
-        margin-bottom: 1rem;
+        background: rgba(45, 45, 45, 0.8);
+        backdrop-filter: blur(10px);
+        padding: 2rem;
+        border-radius: 15px;
+        border: 1px solid #404040;
+        margin-bottom: 1.5rem;
+        color: #e0e0e0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     
+    .feature-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        border-color: #606060;
+    }
+    
+    /* Metric cards with modern gradients */
     .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 50%, #000000 100%);
+        color: #ffffff;
+        padding: 1.5rem;
+        border-radius: 15px;
         text-align: center;
         margin-bottom: 1rem;
+        border: 1px solid #404040;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        transition: transform 0.2s ease;
     }
     
-    .nav-button {
-        width: 100%;
+    .metric-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+    }
+    
+    /* Accent colors for highlights */
+    .accent-green { color: #00ff88; }
+    .accent-blue { color: #0088ff; }
+    .accent-gold { color: #ffd700; }
+    .accent-red { color: #ff4444; }
+    
+    /* Sidebar branding */
+    .sidebar-header {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        text-align: center;
+        border: 1px solid #404040;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Insights and recommendation cards */
+    .insight-card {
+        background: rgba(35, 35, 35, 0.9);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #404040;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        color: #e0e0e0;
+    }
+    
+    /* Achievement badges */
+    .achievement-badge {
+        background: linear-gradient(45deg, #ffd700, #ff8c00);
+        color: #1a1a1a;
+        padding: 0.7rem;
         margin-bottom: 0.5rem;
+        border-radius: 25px;
+        text-align: center;
+        font-size: 0.85rem;
+        font-weight: bold;
+        box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 100%);
+        color: #e0e0e0;
+        border: 1px solid #404040;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #3a3a3a 0%, #2f2f2f 100%);
+        border-color: #606060;
+        transform: translateY(-1px);
+    }
+    
+    /* Metrics */
+    .stMetric {
+        background: rgba(30, 30, 30, 0.8);
+        padding: 1rem;
+        border-radius: 10px;
+        border: 1px solid #404040;
+    }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #404040;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #606060;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -68,9 +180,10 @@ def main():
     # Sidebar navigation
     with st.sidebar:
         st.markdown("""
-        <div style='text-align: center; padding: 1rem; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); border-radius: 10px; margin-bottom: 2rem;'>
-            <h2 style='color: white; margin: 0;'>💰 Pecunia AI</h2>
-            <p style='color: white; margin: 0; opacity: 0.9; font-size: 0.9rem;'>Your AI Financial Assistant</p>
+        <div class='sidebar-header'>
+            <h2 style='color: #ffffff; margin: 0; font-size: 1.8rem;'>💰 Pecunia AI</h2>
+            <p style='color: #a0a0a0; margin: 0.5rem 0 0 0; font-size: 0.95rem;'>Your AI Financial Assistant</p>
+            <div style='width: 100%; height: 2px; background: linear-gradient(90deg, #00ff88, #0088ff); margin-top: 1rem; border-radius: 1px;'></div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -148,36 +261,36 @@ def render_dashboard():
     with col1:
         st.markdown("""
         <div class='metric-card'>
-            <h3 style='margin: 0; font-size: 1.5rem;'>$125,432</h3>
-            <p style='margin: 0; opacity: 0.9;'>Total Portfolio Value</p>
-            <p style='margin: 0; color: #90EE90;'>↗️ +2.3% this month</p>
+            <h3 style='margin: 0; font-size: 1.5rem; color: #ffffff;'>$125,432</h3>
+            <p style='margin: 0; opacity: 0.8; color: #a0a0a0;'>Total Portfolio Value</p>
+            <p style='margin: 0; color: #00ff88; font-weight: bold;'>↗️ +2.3% this month</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown("""
         <div class='metric-card'>
-            <h3 style='margin: 0; font-size: 1.5rem;'>$2,850</h3>
-            <p style='margin: 0; opacity: 0.9;'>Monthly Savings</p>
-            <p style='margin: 0; color: #90EE90;'>↗️ +12% vs target</p>
+            <h3 style='margin: 0; font-size: 1.5rem; color: #ffffff;'>$2,850</h3>
+            <p style='margin: 0; opacity: 0.8; color: #a0a0a0;'>Monthly Savings</p>
+            <p style='margin: 0; color: #0088ff; font-weight: bold;'>↗️ +12% vs target</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
         st.markdown("""
         <div class='metric-card'>
-            <h3 style='margin: 0; font-size: 1.5rem;'>8.7%</h3>
-            <p style='margin: 0; opacity: 0.9;'>YTD Return</p>
-            <p style='margin: 0; color: #90EE90;'>↗️ +1.2% vs S&P 500</p>
+            <h3 style='margin: 0; font-size: 1.5rem; color: #ffffff;'>8.7%</h3>
+            <p style='margin: 0; opacity: 0.8; color: #a0a0a0;'>YTD Return</p>
+            <p style='margin: 0; color: #ffd700; font-weight: bold;'>↗️ +1.2% vs S&P 500</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col4:
         st.markdown("""
         <div class='metric-card'>
-            <h3 style='margin: 0; font-size: 1.5rem;'>Moderate</h3>
-            <p style='margin: 0; opacity: 0.9;'>Risk Level</p>
-            <p style='margin: 0; opacity: 0.8;'>📊 Balanced portfolio</p>
+            <h3 style='margin: 0; font-size: 1.5rem; color: #ffffff;'>Moderate</h3>
+            <p style='margin: 0; opacity: 0.8; color: #a0a0a0;'>Risk Level</p>
+            <p style='margin: 0; color: #0088ff; opacity: 0.9;'>📊 Balanced portfolio</p>
         </div>
         """, unsafe_allow_html=True)
     
