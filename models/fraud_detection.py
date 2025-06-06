@@ -1,3 +1,7 @@
+# Configure matplotlib backend before importing pyplot
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for production
+
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, StratifiedKFold
@@ -20,8 +24,11 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import seaborn as sns
 import time
-warnings.filterwarnings('ignore')
+from pathlib import Path
+import os
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class EarlyStopping:
@@ -411,8 +418,8 @@ class FraudDetector:
         
         plt.tight_layout()
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.show()
-        print(f"📈 Fraud detection training history saved to {save_path}")
+        plt.close('all')  # Close all figures to free memory
+        logger.info(f"📈 Fraud detection training history saved to {save_path}")
     
     def predict(self, data: pd.DataFrame) -> np.ndarray:
         """Make fraud predictions"""
