@@ -5,7 +5,6 @@ Main entry point with model training, detection, and Streamlit app launch
 """
 
 import argparse
-import asyncio
 import os
 import sys
 import time
@@ -13,17 +12,19 @@ import subprocess
 from pathlib import Path
 from typing import Dict, Any, Optional
 import logging
+import warnings
+from sklearn.exceptions import ConvergenceWarning
 
 # Add project root to Python path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-# Configure logging
+# Configure logging with Windows encoding fix
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('logs/pecunia.log'),
+        logging.FileHandler('logs/pecunia.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -45,10 +46,9 @@ def check_model_exists(model_path: str) -> bool:
 def detect_existing_models() -> Dict[str, bool]:
     """Detect which models are already trained"""
     model_paths = {
-        'fraud': 'models/fraud_detector.pkl',
         'expense': 'models/expense_classifier.pkl', 
-        'investment': 'models/investment_model.pkl',
-        'income': 'models/income_predictor.pkl'
+        'income': 'models/income_classifier.pkl',
+        'investment': 'models/investment_predictor.pkl'
     }
     
     existing_models = {}
@@ -62,81 +62,102 @@ def detect_existing_models() -> Dict[str, bool]:
     
     return existing_models
 
-def train_missing_models(missing_models: list, sample_size: int = 10000, epochs: int = 20):
-    """Train only the missing models"""
+def train_missing_models(missing_models: list, args: argparse.Namespace):
+    """Train missing models using the actual training functions"""
     if not missing_models:
         logger.info("🎯 All models are already trained!")
         return
     
     logger.info(f"🧠 Training {len(missing_models)} missing models...")
     
-    # Import model training functions
+    # Define training functions that actually work
     training_functions = {}
     
-    try:
-        from models.fraud_detection import train_fraud_detection_model
-        training_functions['fraud'] = lambda: train_fraud_detection_model(
-            data_path='creditcard.csv',
-            sample_size=sample_size,
-            n_epochs=epochs,
-            save_model=True,
-            model_path='models/fraud_detector.pkl'
-        )
-    except ImportError:
-        logger.warning("Fraud detection training not available")
+    if 'expense' in missing_models:
+        try:
+            from models.train_expense_model import train_expense_classification_model
+            training_functions['expense'] = lambda: train_expense_classification_model(
+                data_path='personal_expense_classification.csv',
+                n_epochs=args.epochs,
+                sample_size=None,  # Use all data for expense (small dataset)
+                save_model=True,
+                model_path='models/expense_classifier.pkl'
+            )
+        except ImportError as e:
+            logger.error(f"Failed to import expense training: {e}")
     
-    try:
-        from models.train_expense_model import train_expense_classifier
-        training_functions['expense'] = lambda: train_expense_classifier(
-            data_path='personal_expense_classification.csv',
-            n_epochs=epochs,
-            save_model=True,
-            model_path='models/expense_classifier.pkl'
-        )
-    except ImportError:
-        logger.warning("Expense classification training not available")
+    if 'income' in missing_models:
+        try:
+            from models.train_income_model import train_income_classification_model
+            training_functions['income'] = lambda: train_income_classification_model(
+                data_path='adult.csv',
+                n_epochs=args.epochs,
+                sample_size=args.sample_size,  # Use sample_size for large dataset
+                save_model=True,
+                model_path='models/income_classifier.pkl'
+            )
+        except ImportError as e:
+            logger.error(f"Failed to import income training: {e}")
     
-    try:
-        from models.train_investment_model import train_investment_model
-        training_functions['investment'] = lambda: train_investment_model(
-            data_path='all_stocks_5yr.csv',
-            sample_size=sample_size,
-            n_epochs=epochs,
-            save_model=True,
-            model_path='models/investment_model.pkl'
-        )
-    except ImportError:
-        logger.warning("Investment model training not available")
+    if 'investment' in missing_models:
+        try:
+            from models.train_investment_model import train_investment_prediction_model
+            training_functions['investment'] = lambda: train_investment_prediction_model(
+                data_path='all_stocks_5yr.csv',
+                n_epochs=args.epochs,
+                sample_size=args.sample_size,  # Use sample_size for large dataset
+                save_model=True,
+                model_path='models/investment_predictor.pkl'
+            )
+        except ImportError as e:
+            logger.error(f"Failed to import investment training: {e}")
     
-    try:
-        from models.train_income_model import train_income_predictor
-        training_functions['income'] = lambda: train_income_predictor(
-            data_path='adult.csv',
-            sample_size=sample_size,
-            n_epochs=epochs,
-            save_model=True,
-            model_path='models/income_predictor.pkl'
-        )
-    except ImportError:
-        logger.warning("Income prediction training not available")
+    # Train models
+    successful_models = 0
+    total_training_time = 0
     
-    # Train missing models
-    for model_name in missing_models:
+    for i, model_name in enumerate(missing_models, 1):
         if model_name in training_functions:
-            logger.info(f"🚀 Training {model_name} model...")
+            logger.info(f"🚀 Training {model_name} model ({i}/{len(missing_models)})...")
+            logger.info(f"   📊 Using {args.sample_size} samples, {args.epochs} epochs")
+            
             try:
                 start_time = time.time()
                 model = training_functions[model_name]()
                 train_time = time.time() - start_time
+                total_training_time += train_time
                 
                 if model:
-                    logger.info(f"✅ {model_name.title()} model trained successfully in {train_time:.2f}s")
+                    logger.info(f"✅ {model_name.title()} model trained in {train_time:.2f}s")
+                    successful_models += 1
+                    
+                    # Quick verification
+                    model_path = f"models/{model_name}_classifier.pkl"
+                    if model_name == 'investment':
+                        model_path = f"models/{model_name}_predictor.pkl"
+                    
+                    if os.path.exists(model_path):
+                        logger.info(f"   💾 Model saved: {model_path}")
+                    else:
+                        logger.warning(f"   ⚠️ Model file not found: {model_path}")
                 else:
-                    logger.error(f"❌ Failed to train {model_name} model")
+                    logger.error(f"❌ Failed to train {model_name} model - returned None")
+                    
             except Exception as e:
-                logger.error(f"❌ Error training {model_name} model: {e}")
+                logger.error(f"❌ Error training {model_name}: {e}")
+                if args.verbose:
+                    import traceback
+                    traceback.print_exc()
         else:
-            logger.warning(f"⚠️ Training function not available for {model_name}")
+            logger.warning(f"⚠️ No training function for {model_name}")
+        
+        # Brief pause between models for visibility
+        if i < len(missing_models):
+            time.sleep(1)
+    
+    # Summary
+    logger.info(f"🏁 Training completed: {successful_models}/{len(missing_models)} successful")
+    logger.info(f"⏱️  Total time: {total_training_time:.2f}s")
 
 def setup_production_environment():
     """Setup production environment with all features enabled"""
@@ -180,7 +201,7 @@ def setup_production_environment():
 
 def install_dependencies():
     """Install required dependencies"""
-    logger.info("📦 Installing dependencies...")
+    logger.info("📦 Installing production-ready dependencies...")
     
     try:
         # Install app dependencies
@@ -190,14 +211,20 @@ def install_dependencies():
         logger.info("✅ App dependencies installed successfully")
     except subprocess.CalledProcessError as e:
         logger.error(f"❌ Failed to install dependencies: {e}")
-        # Try installing individual critical packages
+        
+        # Install production-ready packages for Bayesian optimization
         critical_packages = [
             'streamlit>=1.28.0',
             'pandas>=1.5.0', 
             'numpy>=1.24.0',
             'plotly>=5.15.0',
             'requests>=2.31.0',
-            'scikit-learn>=1.3.0'
+            'scikit-learn>=1.3.0',
+            'scikit-optimize>=0.10.0',  # Bayesian optimization
+            'optuna>=4.0.0',            # Advanced hyperparameter tuning
+            'xgboost>=2.0.0',           # Modern XGBoost
+            'psutil>=5.9.0',            # System monitoring
+            'GPUtil>=1.4.0'             # GPU monitoring
         ]
         
         for package in critical_packages:
@@ -210,7 +237,7 @@ def install_dependencies():
                 logger.warning(f"⚠️ Failed to install {package}")
 
 def launch_streamlit_app():
-    """Launch the Streamlit application"""
+    """Launch the Streamlit application with proper browser support"""
     logger.info("🚀 Launching Pecunia AI Streamlit Application...")
     
     app_path = Path('app/pecunia_app.py')
@@ -219,22 +246,40 @@ def launch_streamlit_app():
         return False
     
     try:
-        # Launch Streamlit
+        # Launch Streamlit with browser-compatible settings
         cmd = [
             sys.executable, '-m', 'streamlit', 'run', 
             str(app_path),
             '--server.port=8501',
-            '--server.address=0.0.0.0',
+            '--server.address=127.0.0.1',  # Fixed: Use 127.0.0.1 instead of 0.0.0.0
             '--server.headless=false',
             '--browser.gatherUsageStats=false',
-            '--theme.primaryColor=#667eea',
-            '--theme.backgroundColor=#ffffff',
-            '--theme.secondaryBackgroundColor=#f0f2f6'
+            '--browser.serverAddress=localhost',  # Ensure browser connects properly
+            '--theme.primaryColor=#00ff88',
+            '--theme.backgroundColor=#1a1a1a',    # Dark theme
+            '--theme.secondaryBackgroundColor=#2d2d2d'
         ]
         
         logger.info("🌐 Starting Streamlit server...")
         logger.info("📱 Access the app at: http://localhost:8501")
-        logger.info("🔗 Network access at: http://0.0.0.0:8501")
+        logger.info("🎨 Theme: Dark mode enabled")
+        
+        # Auto-open browser after short delay
+        import webbrowser
+        import threading
+        
+        def open_browser():
+            time.sleep(3)  # Wait for server to start
+            try:
+                webbrowser.open("http://localhost:8501")
+                logger.info("🚀 Browser opened automatically")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not open browser: {e}")
+        
+        # Start browser opening in background
+        browser_thread = threading.Thread(target=open_browser)
+        browser_thread.daemon = True
+        browser_thread.start()
         
         # Run Streamlit
         process = subprocess.run(cmd)
@@ -247,9 +292,16 @@ def launch_streamlit_app():
 def parse_arguments():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
-        description="Pecunia AI - Complete Financial Management System",
+        description="Pecunia AI - Complete Financial Management System with Bayesian Optimization",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+🎯 Production Features:
+  • Bayesian hyperparameter optimization (96 iterations)
+  • GPU-accelerated training with CUDA support
+  • Comprehensive system monitoring & logging
+  • Intelligent model detection & skipping
+  • Production-grade error handling & fallbacks
+
 Examples:
   # Run complete system (recommended)
   python main.py
@@ -260,10 +312,10 @@ Examples:
   # Skip training and just run app
   python main.py --skip-training
   
-  # Force retrain all models
+  # Force retrain all models with Bayesian optimization
   python main.py --force-retrain
   
-  # Production deployment
+  # Production deployment with all features
   python main.py --production --install-deps
         """
     )
@@ -272,15 +324,15 @@ Examples:
     parser.add_argument(
         '--sample-size',
         type=int,
-        default=10000,
-        help='Sample size for training (default: 10000)'
+        default=1000,  # Debug: Reduced from 10000 to 1000
+        help='Sample size for training (default: 1000 for debugging)'
     )
     
     parser.add_argument(
         '--epochs',
         type=int,
-        default=20,
-        help='Number of training epochs (default: 20)'
+        default=3,  # Debug: Reduced from 20 to 3
+        help='Number of training epochs (default: 3 for debugging)'
     )
     
     parser.add_argument(
@@ -330,6 +382,12 @@ Examples:
     )
     
     parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug mode with minimal samples'
+    )
+    
+    parser.add_argument(
         '--no-browser',
         action='store_true',
         help='Do not open browser automatically'
@@ -351,7 +409,7 @@ def print_banner():
     """
     print(banner)
 
-async def main():
+def main():
     """Main entry point for complete Pecunia AI system"""
     args = parse_arguments()
     
@@ -361,46 +419,92 @@ async def main():
         logging.getLogger().setLevel(logging.DEBUG)
         logger.info("🔧 Verbose mode enabled")
     
+    if args.debug:
+        # Override for debug mode
+        args.sample_size = min(args.sample_size, 500)  # Max 500 samples in debug
+        args.epochs = min(args.epochs, 2)  # Max 2 epochs in debug
+        logger.info("🐛 DEBUG MODE: Using minimal samples and epochs")
+        logger.info(f"   • Sample size: {args.sample_size}")
+        logger.info(f"   • Epochs: {args.epochs}")
+        
+        # Suppress non-critical warnings ONLY in debug mode
+        warnings.filterwarnings("ignore", category=UserWarning, message="Features.*are constant.")
+        warnings.filterwarnings("ignore", category=RuntimeWarning, message="invalid value encountered in divide")
+        warnings.filterwarnings("ignore", category=ConvergenceWarning)
+        logger.info("   • Suppressing non-critical UserWarning, RuntimeWarning, and ConvergenceWarning.")
+    
     logger.info("🚀 Starting Pecunia AI Complete System...")
     
     try:
         # Step 1: Setup production environment if requested
         if args.production:
+            logger.info("⚙️  Setting up production environment...")
             setup_production_environment()
         
         # Step 2: Install dependencies if requested
         if args.install_deps:
+            logger.info("📦 Installing dependencies...")
             install_dependencies()
         
-        # Step 3: Model training and detection
+        # Step 3: Model training and detection (MUST complete before app launch)
         if not args.skip_training:
             logger.info("🧠 Checking model status...")
             existing_models = detect_existing_models()
             
+            # Print detailed model status
+            logger.info("📊 Model Status:")
+            for model_name, exists in existing_models.items():
+                status = "✅ Found" if exists else "❌ Missing"
+                logger.info(f"  • {model_name}: {status}")
+            
             if args.force_retrain:
                 logger.info("🔄 Force retraining all models...")
-                missing_models = ['fraud', 'expense', 'investment', 'income']
+                missing_models = ['expense', 'income', 'investment']
             else:
                 missing_models = [name for name, exists in existing_models.items() if not exists]
             
             if missing_models:
-                logger.info(f"🎯 Need to train: {', '.join(missing_models)}")
-                train_missing_models(missing_models, args.sample_size, args.epochs)
+                logger.info(f"🎯 Starting training for: {', '.join(missing_models)}")
+                logger.info("⏳ Training in progress... Please wait until completion!")
+                
+                # BLOCKING TRAINING - Must complete before proceeding
+                train_missing_models(missing_models, args)
+                
+                # Verify training completion
+                logger.info("🔍 Verifying training completion...")
+                final_models_check = detect_existing_models()
+                trained_count = sum(final_models_check.values())
+                total_count = len(final_models_check)
+                
+                logger.info(f"📊 Training Results: {trained_count}/{total_count} models available")
+                
+                if trained_count == total_count:
+                    logger.info("✅ All models trained successfully!")
+                else:
+                    logger.warning(f"⚠️  Only {trained_count}/{total_count} models completed")
             else:
                 logger.info("✅ All models are available!")
         else:
             logger.info("⏭️ Skipping model training as requested")
         
-        # Step 4: Launch Streamlit application
+        # Step 4: Launch Streamlit application (ONLY after training completes)
         logger.info("🌟 All preparation complete - launching application...")
-        time.sleep(2)  # Brief pause for visibility
+        logger.info("🚀 Starting Streamlit server in 3 seconds...")
         
-        success = launch_streamlit_app()
+        # Brief countdown for visibility
+        for i in range(3, 0, -1):
+            logger.info(f"⏳ {i}...")
+            time.sleep(1)
         
-        if success:
-            logger.info("🎉 Pecunia AI launched successfully!")
+        if not args.no_browser:
+            success = launch_streamlit_app()
+            
+            if success:
+                logger.info("🎉 Pecunia AI launched successfully!")
+            else:
+                logger.error("❌ Failed to launch Pecunia AI")
         else:
-            logger.error("❌ Failed to launch Pecunia AI")
+            logger.info("🚫 Browser launch disabled by user")
             
     except KeyboardInterrupt:
         logger.info("\n⏹️ Operation cancelled by user")
@@ -409,9 +513,11 @@ async def main():
         if args.verbose:
             import traceback
             traceback.print_exc()
+        return 1
     
     logger.info("\n🚀 Pecunia AI - Ready for Production!")
+    return 0
 
 if __name__ == "__main__":
     # Run the main function
-    asyncio.run(main()) 
+    exit(main()) 
